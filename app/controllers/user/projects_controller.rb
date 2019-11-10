@@ -100,7 +100,9 @@ class User::ProjectsController < ApplicationController
   def show
     id       = params[:id]
     child_id = params[:child]
+
     @project = ProjectService.find( id )
+
     if @project.public == false && @project.visible_for_user?(current_user) == false
       flash[:error] = "You have no access to this project!"
       return if !authenticate

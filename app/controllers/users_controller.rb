@@ -32,6 +32,11 @@ class UsersController < ApplicationController
 
 
   def create
+    if Rails.env.production? == true
+      flash[:error] = "VersionEye will shut down soon. Signups are disabled."
+      redirect_to signup_path and return
+    end
+
     @user = create_user_form params
     if Set['1', 'on', 'true'].include? params[:user][:terms]
       @user[:terms] = true
@@ -126,6 +131,17 @@ class UsersController < ApplicationController
       @comments = Versioncomment.find_by_user_id( @user.id ).paginate(:page => params[:page])
       @count = Versioncomment.count_by_user_id( @user.id )
     end
+  end
+
+
+  def promo
+    username = params[:id]
+    @user = User.find_by_username( username )
+    return nil if @user.nil?
+    
+    @user.promo_code = 'gemnasium'
+    @user.save
+    redirect_to "https://beta.gemnasium.com/welcome/versioneye?uid=#{@user.ids}"
   end
 
 

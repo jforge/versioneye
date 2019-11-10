@@ -17,6 +17,7 @@ class Settings::GlobalsettingsController < ApplicationController
     @globalsetting['unique_gav']  = Settings.instance.projects_unique_gav
     @globalsetting['unique_scm'] = Settings.instance.projects_unique_scm
     @globalsetting['orga_creation_admin_only'] = Settings.instance.orga_creation_admin_only
+    @globalsetting['disable_sync'] = Settings.instance.disable_sync
   end
 
   def update
@@ -75,6 +76,12 @@ class Settings::GlobalsettingsController < ApplicationController
       GlobalSetting.set( env, 'orga_creation_admin_only', "false" )
     end
 
+    if params[:disable_sync] && params[:disable_sync].eql?("true")
+      GlobalSetting.set( env, 'disable_sync', "true" )
+    else
+      GlobalSetting.set( env, 'disable_sync', "false" )
+    end
+
     Settings.instance.reload_from_db GlobalSetting.new
     flash[:success] = "Global Server Settings changed successfully"
     redirect_to settings_globalsettings_path
@@ -85,6 +92,10 @@ class Settings::GlobalsettingsController < ApplicationController
     env = Settings.instance.environment
     @globalsetting = {}
     @globalsetting['api_key']         = GlobalSetting.get env, 'api_key'
+    @globalsetting['api_url']         = GlobalSetting.get env, 'api_url'
+    if @globalsetting['api_url'].to_s.empty?
+      @globalsetting['api_url'] = 'https://www.versioneye.com/api'
+    end
     @globalsetting['e_projects']      = GlobalSetting.get env, 'e_projects'
     @globalsetting['rate_limit']      = GlobalSetting.get env, 'E_RATE_LIMIT'
     @globalsetting['comp_limit']      = GlobalSetting.get env, 'E_COMP_LIMIT'
@@ -93,8 +104,8 @@ class Settings::GlobalsettingsController < ApplicationController
 
   def update_activation
     env = Settings.instance.environment
-    api_key    = params[:api_key]
-    resp = EnterpriseService.activate!(api_key)
+    GlobalSetting.set env, 'api_url', params[:api_url]
+    resp = EnterpriseService.activate!(params[:api_key])
     if resp == true
       flash[:success] = "API Key validated successfully!"
     else
@@ -102,7 +113,9 @@ class Settings::GlobalsettingsController < ApplicationController
     end
     @globalsetting = {}
     @globalsetting['api_key']         = GlobalSetting.get env, 'api_key'
+    @globalsetting['api_url']         = GlobalSetting.get env, 'api_url'
     @globalsetting['activation_date'] = GlobalSetting.get env, 'activation_date'
+    Settings.instance.reload_from_db GlobalSetting.new
     redirect_to settings_activation_path
   end
 
